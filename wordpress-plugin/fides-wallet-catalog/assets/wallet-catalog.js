@@ -74,6 +74,44 @@
     'CBOR-LD'
   ];
 
+  /** COSE algorithm integers from wallet / issuer metadata (IANA + common deployments). */
+  const COSE_SIGNING_ALG_LABELS = {
+    '-257': 'RS256',
+    '-258': 'RS384',
+    '-259': 'RS512',
+    '-7': 'ES256',
+    '-8': 'EdDSA',
+    '-9': 'ES512',
+    '-35': 'ES384',
+    '-36': 'ES512',
+    '-37': 'PS256',
+    '-38': 'PS384',
+    '-39': 'PS512',
+    '-19': 'Ed25519',
+    '-46': 'Ed448',
+    '-47': 'ES256K',
+  };
+
+  function formatSigningAlgorithmLabel(alg) {
+    if (alg === null || alg === undefined || alg === '') return String(alg);
+    if (typeof alg === 'number' && Number.isFinite(alg)) {
+      const k = String(alg);
+      return COSE_SIGNING_ALG_LABELS[k] || `COSE ${k}`;
+    }
+    const s = String(alg).trim();
+    if (/^-?\d+$/.test(s)) {
+      return COSE_SIGNING_ALG_LABELS[s] || `COSE ${s}`;
+    }
+    return s;
+  }
+
+  function uniqueSigningAlgorithmLabels(algorithms) {
+    if (!algorithms || !algorithms.length) return [];
+    const labels = [...new Set(algorithms.map(formatSigningAlgorithmLabel))];
+    labels.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    return labels;
+  }
+
   /**
    * Sort credential formats in consistent order
    */
@@ -394,7 +432,8 @@
 
     // Read query parameters for filtering
     readQueryParams();
-    
+    normalizeWalletSigningAlgorithmFilters();
+
     render();
     
     // Check for deep link after render
@@ -552,7 +591,9 @@
 
       // Signing Algorithms
       if (filters.signingAlgorithms.length > 0) {
-        const hasMatch = filters.signingAlgorithms.some(a => (wallet.signingAlgorithms || []).includes(a));
+        const hasMatch = filters.signingAlgorithms.some(sel =>
+          (wallet.signingAlgorithms || []).some(w => formatSigningAlgorithmLabel(w) === sel)
+        );
         if (!hasMatch) return false;
       }
 
@@ -722,7 +763,8 @@
         keyStorage[k] = (keyStorage[k] || 0) + 1;
       });
       (wallet.signingAlgorithms || []).forEach(a => {
-        signingAlgorithms[a] = (signingAlgorithms[a] || 0) + 1;
+        const L = formatSigningAlgorithmLabel(a);
+        signingAlgorithms[L] = (signingAlgorithms[L] || 0) + 1;
       });
       (wallet.credentialStatusMethods || []).forEach(m => {
         credentialStatusMethods[m] = (credentialStatusMethods[m] || 0) + 1;
@@ -782,11 +824,19 @@
    * Get unique signing algorithms from all wallets
    */
   function getAvailableSigningAlgorithms() {
-    const algorithms = new Set();
+    const labels = new Set();
     wallets.forEach(wallet => {
-      (wallet.signingAlgorithms || []).forEach(a => algorithms.add(a));
+      (wallet.signingAlgorithms || []).forEach(a => labels.add(formatSigningAlgorithmLabel(a)));
     });
-    return Array.from(algorithms).sort();
+    (filters.signingAlgorithms || []).forEach(f => labels.add(formatSigningAlgorithmLabel(f)));
+    return Array.from(labels).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: 'base' })
+    );
+  }
+
+  /** Merge legacy filter state (raw COSE / string) into canonical display labels. */
+  function normalizeWalletSigningAlgorithmFilters() {
+    filters.signingAlgorithms = [...new Set((filters.signingAlgorithms || []).map((v) => formatSigningAlgorithmLabel(v)))];
   }
 
   /**
@@ -1147,10 +1197,10 @@
                 ${icons.chevronDown}
               </button>
               <div class="fides-filter-options">
-                ${getAvailableSigningAlgorithms().map(alg => `
+                ${getAvailableSigningAlgorithms().map(label => `
                   <label class="fides-filter-checkbox">
-                    <input type="checkbox" data-filter="signingAlgorithms" data-value="${alg}" ${filters.signingAlgorithms.includes(alg) ? 'checked' : ''}>
-                    <span>${escapeHtml(alg)}<span class="fides-filter-option-count">(${filterFacets && filterFacets.signingAlgorithms[alg] != null ? filterFacets.signingAlgorithms[alg] : ''})</span></span>
+                    <input type="checkbox" data-filter="signingAlgorithms" data-value="${escapeHtml(label)}" ${filters.signingAlgorithms.includes(label) ? 'checked' : ''}>
+                    <span>${escapeHtml(label)}<span class="fides-filter-option-count">(${filterFacets && filterFacets.signingAlgorithms[label] != null ? filterFacets.signingAlgorithms[label] : ''})</span></span>
                   </label>
                 `).join('')}
               </div>
@@ -1697,7 +1747,7 @@
                     ${icons.penLine} Signing Algorithms
                   </div>
                   <div class="fides-modal-grid-value">
-                    ${wallet.signingAlgorithms.map(a => `<span class="fides-tag">${escapeHtml(a)}</span>`).join('')}
+                    ${uniqueSigningAlgorithmLabels(wallet.signingAlgorithms).map(label => `<span class="fides-tag">${escapeHtml(label)}</span>`).join('')}
                   </div>
                 </div>
               ` : ''}
@@ -2101,13 +2151,14 @@
           filters.governance = isChecked ? value : null;
         }
         else {
-          // Array-based filters
+          // Array-based filters (signing algorithms use merged display labels as values)
+          const storedValue = value;
           if (isChecked) {
-            if (!filters[filterType].includes(value)) {
-              filters[filterType].push(value);
+            if (!filters[filterType].includes(storedValue)) {
+              filters[filterType].push(storedValue);
             }
           } else {
-            filters[filterType] = filters[filterType].filter(v => v !== value);
+            filters[filterType] = filters[filterType].filter(v => v !== storedValue);
           }
         }
         

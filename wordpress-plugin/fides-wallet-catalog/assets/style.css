@@ -74,6 +74,22 @@
   border-color: rgba(0, 0, 0, 0.1);
 }
 
+/* Issuance (issuer / OpenID4VCI): FIDES accent blue — same family as credential-format tags */
+.fides-wallet-catalog[data-theme="fides"] .fides-tag.protocol-issuance,
+.fides-wallet-catalog[data-theme="light"] .fides-tag.protocol-issuance {
+  background: rgba(10, 110, 243, 0.1);
+  color: #0a6ef3;
+  border: 1px solid rgba(10, 110, 243, 0.28);
+}
+
+/* Presentation (RP / OpenID4VP, etc.): purple — distinct from issuer blue */
+.fides-wallet-catalog[data-theme="fides"] .fides-tag.protocol-presentation,
+.fides-wallet-catalog[data-theme="light"] .fides-tag.protocol-presentation {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+  border: 1px solid rgba(124, 58, 237, 0.28);
+}
+
 /* FIDES Theme - Card shadow for light background */
 .fides-wallet-catalog[data-theme="fides"] .fides-wallet-card,
 .fides-wallet-catalog[data-theme="light"] .fides-wallet-card {
@@ -2202,15 +2218,17 @@ span.fides-tag.platform {
   box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
 }
 
-/* Protocol tags */
+/* Protocol tags (dark catalog chrome) — align with FIDES blue vs VP purple used in light theme */
 .fides-tag.protocol-issuance {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
 .fides-tag.protocol-presentation {
   background: rgba(139, 92, 246, 0.15);
   color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.35);
 }
 
 /* DID method tags */
@@ -2267,14 +2285,16 @@ span.fides-tag.platform {
 
 .fides-modal-overlay[data-theme="fides"] .fides-tag.protocol-issuance,
 .fides-modal-overlay[data-theme="light"] .fides-tag.protocol-issuance {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
+  background: rgba(10, 110, 243, 0.1);
+  color: #0a6ef3;
+  border: 1px solid rgba(10, 110, 243, 0.25);
 }
 
 .fides-modal-overlay[data-theme="fides"] .fides-tag.protocol-presentation,
 .fides-modal-overlay[data-theme="light"] .fides-tag.protocol-presentation {
   background: rgba(124, 58, 237, 0.1);
   color: #7c3aed;
+  border: 1px solid rgba(124, 58, 237, 0.25);
 }
 
 .fides-modal-overlay[data-theme="fides"] .fides-tag.standard,
